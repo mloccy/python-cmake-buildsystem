@@ -8,13 +8,6 @@ list(GET VERSION_LIST 1 PY_VERSION_MINOR)
 list(GET VERSION_LIST 2 PY_VERSION_PATCH)
 set(PY_VERSION "${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}.${PY_VERSION_PATCH}")
 
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_CONFIGURATION_TYPES Release CACHE STRING "Release configuration" FORCE)
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-    # Set the possible values of build type for cmake-gui
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Release")
-endif()
-
 if(APPLE)
   set(_msg "Checking which MACOSX_DEPLOYMENT_TARGET to use")
   message(STATUS "${_msg}")
@@ -78,8 +71,8 @@ else()
   set(BUILD_WININST_ALWAYS OFF)
 endif()
 option(INSTALL_DEVELOPMENT "Install files required to develop C extensions" ON)
-option(INSTALL_MANUAL "Install man files" ON)
-option(INSTALL_TEST "Install test files" ON)
+option(INSTALL_MANUAL "Install man files" OFF)
+option(INSTALL_TEST "Install test files" OFF)
 
 # Append an item to a string if it does not already contain it.  Any additional
 # arguments are treated as extra "set" arguments
@@ -152,11 +145,9 @@ endif()
 set(_landmark "pyconfig.h.in") # CMake will look for this file.
 if(NOT (SRC_DIR AND EXISTS ${SRC_DIR}/${_landmark}))
     foreach(dirname
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/cpython-${PY_VERSION}
-        ${CMAKE_CURRENT_SOURCE_DIR}/Python-${PY_VERSION}
-        ${CMAKE_CURRENT_BINARY_DIR}/../cpython-${PY_VERSION}
-        ${CMAKE_CURRENT_BINARY_DIR}/../Python-${PY_VERSION})
+        ${CMAKE_CURRENT_BINARY_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}/cpython-${PY_VERSION}
+        ${CMAKE_CURRENT_BINARY_DIR}/Python-${PY_VERSION})
         set(SRC_DIR ${dirname})
         if(EXISTS ${SRC_DIR}/${_landmark})
             break()
@@ -277,7 +268,7 @@ set(_extracted_dir "Python-${PY_VERSION}")
 
 if(NOT EXISTS ${SRC_DIR}/${_landmark} AND DOWNLOAD_SOURCES)
     get_filename_component(_filename ${_download_link} NAME)
-    set(_archive_filepath ${CMAKE_CURRENT_BINARY_DIR}/../${_filename})
+    set(_archive_filepath ${CMAKE_CURRENT_BINARY_DIR}/${_filename})
     if(EXISTS "${_archive_filepath}")
         message(STATUS "${_filename} already downloaded")
     else()
@@ -294,12 +285,23 @@ if(NOT EXISTS ${SRC_DIR}/${_landmark} AND DOWNLOAD_SOURCES)
 
     message(STATUS "Extracting ${_filename}")
     execute_process(COMMAND ${CMAKE_COMMAND} -E tar xfz ${_archive_filepath}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/..
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         RESULT_VARIABLE rv)
     if(NOT rv EQUAL 0)
         message(FATAL_ERROR "error: extraction of '${_filename}' failed")
     endif()
-    set(SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/../${_extracted_dir})
+    set(SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${_extracted_dir})
+endif()
+
+set (PYTHON_IMPORT_LIB_COPY_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/_python_import_lib_files)
+
+if (NOT EXISTS ${PYTHON_IMPORT_LIB_COPY_DIRECTORY})
+    file(MAKE_DIRECTORY ${PYTHON_IMPORT_LIB_COPY_DIRECTORY})
+    file(COPY_FILE ${SRC_DIR}/Python/importlib.h ${PYTHON_IMPORT_LIB_COPY_DIRECTORY}/importlib.h)
+    file(COPY_FILE ${SRC_DIR}/Python/importlib_external.h ${PYTHON_IMPORT_LIB_COPY_DIRECTORY}/importlib_external.h)
+    if(PY_VERSION VERSION_GREATER_EQUAL "3.8")
+        file(COPY_FILE ${SRC_DIR}/Python/importlib_zipimport.h ${PYTHON_IMPORT_LIB_COPY_DIRECTORY}/importlib_zipimport.h)
+    endif()
 endif()
 
 get_filename_component(SRC_DIR "${SRC_DIR}" ABSOLUTE)
@@ -309,8 +311,6 @@ The searched locations were:
    <CMAKE_CURRENT_SOURCE_DIR>
    <CMAKE_CURRENT_SOURCE_DIR>/cpython-${PY_VERSION}
    <CMAKE_CURRENT_SOURCE_DIR>/Python-${PY_VERSION}
-   <CMAKE_CURRENT_BINARY_DIR>/../cpython-${PY_VERSION}
-   <CMAKE_CURRENT_BINARY_DIR>/../Python-${PY_VERSION}
    <SRC_DIR>
 You could try to:
   1) download ${_download_link}
@@ -838,7 +838,7 @@ configure_package_config_file(
 
 # Configure 'PythonTargets.cmake' and 'PythonConfigVersion.cmake
 get_property(PYTHON_TARGETS GLOBAL PROPERTY PYTHON_TARGETS)
-export(TARGETS ${PYTHON_TARGETS} APPEND FILE ${CONFIG_BUILD_DIR}/PythonTargets.cmake)
+export(TARGETS ${PYTHON_TARGETS} APPEND FILE ${CONFIG_BUILD_DIR}/PythonTargets.cmake NAMESPACE Python::)
 
 set(python_config_version ${CONFIG_BUILD_DIR}/PythonConfigVersion.cmake)
 write_basic_package_version_file(
@@ -851,7 +851,8 @@ if(INSTALL_DEVELOPMENT)
     # Install 'PythonTargets.cmake', 'PythonConfig.cmake' and 'PythonConfigVersion.cmake
     install(EXPORT PythonTargets
         FILE PythonTargets.cmake
-        DESTINATION ${CONFIG_INSTALL_DIR} COMPONENT Development)
+        DESTINATION ${CONFIG_INSTALL_DIR} COMPONENT Development
+        NAMESPACE Python::)
 
     install(
         FILES ${python_install_config} ${python_config_version}

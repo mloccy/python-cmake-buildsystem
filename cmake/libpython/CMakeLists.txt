@@ -454,7 +454,7 @@ if(WIN32 AND IS_PY3)
     endif()
 endif()
 
-set(LIBPYTHON_FROZEN_SOURCES )
+set(LIBPYTHON_FROZEN_SOURCES)
 if(IS_PY3)
 
 # Build _freeze_importlib executable
@@ -462,6 +462,28 @@ add_executable(_freeze_importlib
   ${SRC_DIR}/Programs/_freeze_importlib.c
   ${LIBPYTHON_OMIT_FROZEN_SOURCES}
   )
+
+# Copy files that are required for building _freeze_importlib that are destroyed if the build folder is cleaned
+add_custom_command(
+    TARGET _freeze_importlib PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${PYTHON_IMPORT_LIB_COPY_DIRECTORY}/importlib.h
+        ${SRC_DIR}/Python/importlib.h)
+
+add_custom_command(
+    TARGET _freeze_importlib PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${PYTHON_IMPORT_LIB_COPY_DIRECTORY}/importlib_external.h
+        ${SRC_DIR}/Python/importlib_external.h)
+
+if(PY_VERSION VERSION_GREATER_EQUAL "3.8")
+    add_custom_command(
+        TARGET _freeze_importlib PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${PYTHON_IMPORT_LIB_COPY_DIRECTORY}/importlib_zipimport.h
+            ${SRC_DIR}/Python/importlib_zipimport.h)
+endif()
+
 target_link_libraries(_freeze_importlib ${LIBPYTHON_TARGET_LIBRARIES})
 if(builtin_compile_definitions_without_py_limited_api)
   target_compile_definitions(_freeze_importlib PUBLIC ${builtin_compile_definitions_without_py_limited_api})
@@ -553,6 +575,7 @@ endif()
 function(add_libpython name type install component)
     add_library(${name} ${type} ${LIBPYTHON_SOURCES})
     target_link_libraries(${name} ${LIBPYTHON_TARGET_LIBRARIES})
+    add_dependencies(${name} freeze_modules)
 
     if(MSVC)
         # Explicitly disable COMDAT folding. Note that this was not required
