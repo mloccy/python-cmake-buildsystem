@@ -6,6 +6,7 @@ set(PYTHON_SOURCES
 )
 
 add_executable(python ${PYTHON_SOURCES})
+add_executable(pythonw ${PYTHON_SOURCES})
 if (WIN32)
     add_custom_command (
         TARGET python POST_BUILD
@@ -17,16 +18,28 @@ set_property(
     TARGET python
     PROPERTY RUNTIME_OUTPUT_DIRECTORY ${BIN_BUILD_DIR}
     )
+set_property(
+    TARGET pythonw
+    PROPERTY RUNTIME_OUTPUT_DIRECTORY ${BIN_BUILD_DIR}
+    )
 target_compile_definitions(python PRIVATE Py_BUILD_CORE)
+target_compile_definitions(pythonw PRIVATE Py_BUILD_CORE)
 add_definitions(-DPy_BUILD_CORE)
 
 # Link against the shared libpython if it was built, otherwise use the static
 # version.
 if(BUILD_LIBPYTHON_SHARED)
     target_link_libraries(python libpython-shared)
+    target_link_libraries(pythonw libpython-shared)
 else()
     target_link_libraries(python libpython-static)
     set_target_properties(python PROPERTIES
+        COMPILE_DEFINITIONS Py_NO_ENABLE_SHARED
+        ENABLE_EXPORTS ON
+    )
+
+    target_link_libraries(pythonw libpython-static)
+    set_target_properties(pythonw PROPERTIES
         COMPILE_DEFINITIONS Py_NO_ENABLE_SHARED
         ENABLE_EXPORTS ON
     )
@@ -34,12 +47,15 @@ endif()
 
 if(MSVC)
     set_target_properties(python PROPERTIES LINK_FLAGS /STACK:2000000)
+    set_target_properties(pythonw PROPERTIES LINK_FLAGS /STACK:2000000)
 endif()
 
 # Export target
 set_property(GLOBAL APPEND PROPERTY PYTHON_TARGETS python)
+set_property(GLOBAL APPEND PROPERTY PYTHON_TARGETS pythonw)
 
-install(TARGETS python EXPORT PythonTargets RUNTIME DESTINATION ${BIN_INSTALL_DIR} COMPONENT Runtime)
+install(TARGETS python pythonw EXPORT PythonTargets RUNTIME DESTINATION ${BIN_INSTALL_DIR} COMPONENT Runtime)
+
 
 # See "is_python_build()" in sysconfig.py
 add_custom_command(TARGET python PRE_BUILD

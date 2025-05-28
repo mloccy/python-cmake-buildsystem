@@ -18,8 +18,8 @@ endif()
 include ("cmake/HunterGate.cmake")
 
 HunterGate(
-    URL "https://github.com/mloccy/hunter/archive/refs/tags/v0.25.39.tar.gz"
-    SHA1 "40fe9dafba3a75340cc29d3a95d56644cf940e34"
+    URL "https://github.com/mloccy/hunter/archive/refs/tags/v0.25.40.tar.gz"
+    SHA1 "a84a15a8aa37eebd0c158433fbee77bc73119967"
     LOCAL)
 
 project(Python C CXX ASM)
