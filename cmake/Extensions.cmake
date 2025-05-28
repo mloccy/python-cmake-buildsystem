@@ -196,7 +196,6 @@ function(add_python_extension name)
             )
 
             add_custom_command (
-                COMMENT "COPYING \"$<TARGET_RUNTIME_DLLS:${target_name}>\" FOR ${target_name}"
                 TARGET ${target_name} POST_BUILD
                 COMMAND "${CMAKE_COMMAND}" -E copy -t "$<TARGET_FILE_DIR:${target_name}>"
                         "$<TARGET_RUNTIME_DLLS:${target_name}>" USES_TERMINAL COMMAND_EXPAND_LISTS
