@@ -6,6 +6,13 @@ set(PYTHON_SOURCES
 )
 
 add_executable(python ${PYTHON_SOURCES})
+if (WIN32)
+    add_custom_command (
+        TARGET python POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy -t "$<TARGET_FILE_DIR:python>"
+                "$<TARGET_RUNTIME_DLLS:python>" USES_TERMINAL COMMAND_EXPAND_LISTS
+    )
+endif()
 set_property(
     TARGET python
     PROPERTY RUNTIME_OUTPUT_DIRECTORY ${BIN_BUILD_DIR}

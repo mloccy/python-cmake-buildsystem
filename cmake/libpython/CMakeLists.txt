@@ -463,6 +463,13 @@ add_executable(_freeze_importlib
   ${LIBPYTHON_OMIT_FROZEN_SOURCES}
   )
 
+if (WIN32)
+    add_custom_command (
+        TARGET _freeze_importlib POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy -t "$<TARGET_FILE_DIR:_freeze_importlib>"
+                "$<TARGET_RUNTIME_DLLS:_freeze_importlib>" USES_TERMINAL COMMAND_EXPAND_LISTS
+    )
+endif()
 # Copy files that are required for building _freeze_importlib that are destroyed if the build folder is cleaned
 add_custom_command(
     TARGET _freeze_importlib PRE_BUILD

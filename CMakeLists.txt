@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.13.5)
-
 set(PYTHON_VERSION "3.9.17" CACHE STRING "The version of Python to build.")
 
 string(REPLACE "." ";" VERSION_LIST ${PYTHON_VERSION})
@@ -16,7 +15,18 @@ if(APPLE)
   message(STATUS "${_msg} - ${MACOSX_DEPLOYMENT_TARGET}")
 endif()
 
-project(Python C ASM)
+include ("cmake/HunterGate.cmake")
+
+HunterGate(
+    URL "https://github.com/mloccy/hunter/archive/refs/tags/v0.25.39.tar.gz"
+    SHA1 "40fe9dafba3a75340cc29d3a95d56644cf940e34"
+    LOCAL)
+
+project(Python C CXX ASM)
+
+hunter_add_package(OpenSSL)
+hunter_add_package(zlib)
+hunter_add_package(libffi)
 
 if(NOT DEFINED CMAKE_MACOSX_RPATH)
   set(CMAKE_MACOSX_RPATH "")
@@ -33,7 +43,7 @@ include(CTest)
 
 # Options
 option(DOWNLOAD_SOURCES "Automatically download the Python sources" ON)
-set(_build_libpython_shared_default  0)
+set(_build_libpython_shared_default  TRUE)
 set(_build_libpython_shared_desc "Build libpython as a shared library")
 
 if(DEFINED BUILD_SHARED OR DEFINED BUILD_STATIC)
